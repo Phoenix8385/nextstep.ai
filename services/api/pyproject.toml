@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nextstep-api"
+version = "0.1.0"
+description = "NextStep.ai backend API (FastAPI)"
+requires-python = ">=3.11,<3.12"
+# Runtime dependencies are pinned in requirements.txt (the lockfile). Keep this
+# empty so `pip install -e .` only registers the `app` package on sys.path.
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["app", "tests"]
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "S",   # flake8-bandit
+    "ASYNC",
+    "RUF",
+]
+ignore = [
+    "B008",  # function calls in argument defaults — FastAPI Depends() idiom
+    "S101",  # assert — used in tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106"]  # hard-coded test secrets/passwords are fine in tests
+"app/scripts/seed_jobs.py" = ["S106"]  # board_token is a public ATS company slug, not a secret
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+show_error_codes = true
+plugins = ["pydantic.mypy"]
+exclude = ["^venv/", "^alembic/versions/"]
+# services/__init__.py (the worker package) would otherwise let mypy also see this
+# tree as `services.api.app`; anchor module names to this directory instead.
+explicit_package_bases = true
+mypy_path = ["."]
+
+[[tool.mypy.overrides]]
+module = ["jose.*", "spacy.*", "pdfplumber.*", "docx.*", "celery.*", "passlib.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["error::DeprecationWarning:app.*"]
+addopts = "-ra"

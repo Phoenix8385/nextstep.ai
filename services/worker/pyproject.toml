@@ -1,0 +1,33 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "N", "S", "ASYNC", "RUF"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "services"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+show_error_codes = true
+plugins = ["pydantic.mypy"]
+# The API package is installed in editable mode; point mypy at its source directly.
+mypy_path = ["../api"]
+# Celery ships no stubs, so @celery_app.task is an untyped decorator.
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "redis.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra"

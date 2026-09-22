@@ -2,3 +2,8 @@ packages:
   - "apps/*"
   - "services/*"
   - "packages/*"
+
+# pnpm blocks dependency build scripts by default (supply-chain safety).
+# unrs-resolver (used by eslint-config-next) only downloads its prebuilt binary.
+allowBuilds:
+  unrs-resolver: true

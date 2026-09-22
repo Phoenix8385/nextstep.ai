@@ -1,0 +1,3 @@
+# The worker runs on the API dependency set and imports its `app` package.
+-r ../api/requirements.txt
+-e ../api

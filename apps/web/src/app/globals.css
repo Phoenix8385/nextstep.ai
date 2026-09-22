@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+}
+
+/* Minimal enter/exit animations used by the toast component. */
+@keyframes slide-in-from-right-8 {
+  from {
+    transform: translateX(2rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes fade-out-80 {
+  to {
+    opacity: 0;
+  }
+}
+.animate-in.slide-in-from-right-8 {
+  animation: slide-in-from-right-8 180ms ease-out;
+}
+.animate-out.fade-out-80 {
+  animation: fade-out-80 150ms ease-in forwards;
+}

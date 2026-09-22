@@ -1,5 +1,9 @@
 # NextStep.ai
 
+[![CI](https://github.com/Phoenix8385/nextstep.ai/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Phoenix8385/nextstep.ai/actions/workflows/ci.yml)
+[![Deploy Frontend](https://github.com/Phoenix8385/nextstep.ai/actions/workflows/deploy-frontend.yml/badge.svg)](https://github.com/Phoenix8385/nextstep.ai/actions/workflows/deploy-frontend.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 AI-powered job discovery, resume matching, and application tracking platform.
 
 NextStep.ai polls public job-board APIs (Greenhouse, Lever, Ashby), normalizes
@@ -65,7 +69,7 @@ nextstep-ai/
 
 ```bash
 # 1. Clone and enter the repo
-git clone https://github.com/<your-org>/nextstep-ai.git && cd nextstep-ai
+git clone https://github.com/Phoenix8385/nextstep.ai.git && cd nextstep.ai
 
 # 2. Configure environment
 cp .env.example .env
@@ -82,6 +86,66 @@ pnpm install && pnpm --filter web dev
 
 The frontend is available at http://localhost:3000 and the API docs at
 http://localhost:8000/docs.
+
+## Backend Development (without the API container)
+
+All commands run from `services/api` with the virtualenv active.
+
+```bash
+cd services/api
+
+# Windows — PowerShell:  venv\Scripts\Activate.ps1
+# Windows — Git Bash:    source venv/Scripts/activate
+# macOS / Linux:         source venv/bin/activate
+
+pip install -r requirements.txt
+pip install -e .                       # registers the `app` package (no deps)
+pip install -r ../worker/requirements.txt   # worker shares this venv
+
+docker compose -f ../../docker-compose.yml up -d postgres redis
+alembic upgrade head
+
+python -m app.scripts.seed_jobs        # 10 sample jobs; safe to re-run
+uvicorn app.main:app --reload --port 8000
+```
+
+Job discovery (`GET /jobs`, `GET /jobs/{id}`) is public. Everything tied to a
+user — saved jobs, profile, resumes, applications — needs a Bearer token from
+`POST /auth/signup` or `POST /auth/login` (use the **Authorize** button in
+`/docs`).
+
+Always run scripts as modules (`python -m app.scripts.<name>`), never by file
+path (`python app/scripts/<name>.py`): running by path puts the script's own
+directory on `sys.path` instead of `services/api`, so `import app` fails.
+
+### Ingestion (Greenhouse / Lever / Ashby)
+
+Register a board and pull it once, without Celery:
+
+```bash
+python -m app.scripts.ingest greenhouse stripe --dry-run          # fetch + print, no DB writes
+python -m app.scripts.ingest ashby notion --company Notion --create-source
+python -m app.scripts.ingest --source-id 5                         # re-sync an existing row
+```
+
+Run the worker and scheduler from the **repository root** (same virtualenv;
+beat sweeps every active `job_sources` row every `INGEST_INTERVAL_MINUTES`, default 20):
+
+```bash
+cd ../..
+celery -A services.worker.celery_app worker --loglevel=info --pool=solo   # --pool=solo on Windows
+celery -A services.worker.celery_app beat   --loglevel=info
+celery -A services.worker.celery_app call worker.ingest_all_active_sources   # sweep now
+```
+
+The rows created by `seed_jobs` are synthetic; register real boards with
+`--create-source` (each ATS's public API needs only the company slug).
+
+Checks:
+
+```bash
+ruff check . && ruff format --check . && mypy app && pytest
+```
 
 ## License
 

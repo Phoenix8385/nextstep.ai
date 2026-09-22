@@ -1,0 +1,54 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "f0e1d2c3-0000-4000-8000-000000000001",
+      "title": "Full Stack Engineer, Growth",
+      "department": "Engineering",
+      "team": "Growth",
+      "employmentType": "FullTime",
+      "location": "San Francisco",
+      "secondaryLocations": [],
+      "publishedAt": "2026-09-14T17:00:00.000Z",
+      "isListed": true,
+      "isRemote": false,
+      "jobUrl": "https://jobs.ashbyhq.com/acme/f0e1d2c3-0000-4000-8000-000000000001",
+      "applyUrl": "https://jobs.ashbyhq.com/acme/f0e1d2c3-0000-4000-8000-000000000001/application",
+      "descriptionHtml": "<p>Ship experiments in TypeScript and React.</p><h3>Qualifications</h3><ul><li>3+ years full-stack</li><li>PostgreSQL and Redis</li></ul>",
+      "descriptionPlain": "Ship experiments in TypeScript and React. Qualifications 3+ years full-stack PostgreSQL and Redis"
+    },
+    {
+      "id": "f0e1d2c3-0000-4000-8000-000000000002",
+      "title": "Backend Engineer",
+      "employmentType": "FullTime",
+      "location": null,
+      "secondaryLocations": [
+        {
+          "location": "London, UK"
+        }
+      ],
+      "publishedAt": "2026-09-19T08:00:00.000Z",
+      "isListed": true,
+      "isRemote": true,
+      "jobUrl": "https://jobs.ashbyhq.com/acme/f0e1d2c3-0000-4000-8000-000000000002",
+      "descriptionHtml": "<p>Own the Go services.</p>"
+    },
+    {
+      "id": "f0e1d2c3-0000-4000-8000-000000000003",
+      "title": "Hidden Role",
+      "isListed": false,
+      "jobUrl": "https://jobs.ashbyhq.com/acme/f0e1d2c3-0000-4000-8000-000000000003",
+      "descriptionHtml": "<p>Should never appear.</p>"
+    },
+    {
+      "id": "f0e1d2c3-0000-4000-8000-000000000004",
+      "title": "Engineering Intern (Summer)",
+      "employmentType": "Intern",
+      "location": "Austin, TX",
+      "isListed": true,
+      "isRemote": false,
+      "jobUrl": "https://jobs.ashbyhq.com/acme/f0e1d2c3-0000-4000-8000-000000000004",
+      "descriptionHtml": "<p>Python projects.</p>"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "a1b2c3d4-0000-4000-8000-000000000001",
+    "text": "Machine Learning Engineer",
+    "categories": {
+      "commitment": "Full-time",
+      "location": "New York, NY",
+      "team": "ML",
+      "allLocations": [
+        "New York, NY"
+      ]
+    },
+    "description": "<div>Build fraud models.</div>",
+    "descriptionPlain": "Build fraud models.",
+    "lists": [
+      {
+        "text": "What you'll bring",
+        "content": "<li>3+ years applied ML</li><li>PyTorch and SQL</li>"
+      },
+      {
+        "text": "Nice to have",
+        "content": "<li>Kafka</li>"
+      }
+    ],
+    "additional": "<p>We are an equal opportunity employer.</p>",
+    "additionalPlain": "We are an equal opportunity employer.",
+    "hostedUrl": "https://jobs.lever.co/acme/a1b2c3d4-0000-4000-8000-000000000001",
+    "applyUrl": "https://jobs.lever.co/acme/a1b2c3d4-0000-4000-8000-000000000001/apply",
+    "createdAt": 1757894400000,
+    "workplaceType": "hybrid",
+    "country": "US"
+  },
+  {
+    "id": "a1b2c3d4-0000-4000-8000-000000000002",
+    "text": "Software Engineer, Early Career",
+    "categories": {
+      "commitment": "Full-time",
+      "location": "Remote",
+      "allLocations": []
+    },
+    "descriptionPlain": "Rotational program. 0-2 years experience.",
+    "lists": [],
+    "hostedUrl": "https://jobs.lever.co/acme/a1b2c3d4-0000-4000-8000-000000000002",
+    "createdAt": 1758326400000,
+    "workplaceType": "unspecified"
+  }
+]

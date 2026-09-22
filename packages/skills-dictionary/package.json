@@ -1,0 +1,10 @@
+{
+  "name": "@nextstep/skills-dictionary",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Canonical skill names shared by the API's skill extractor and the web app.",
+  "main": "skills.json",
+  "files": [
+    "skills.json"
+  ]
+}

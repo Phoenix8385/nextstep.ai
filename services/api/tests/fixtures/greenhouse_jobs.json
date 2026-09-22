@@ -1,0 +1,50 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/4001",
+      "internal_job_id": 900001,
+      "location": {
+        "name": "San Francisco, CA"
+      },
+      "metadata": null,
+      "id": 4001,
+      "updated_at": "2026-09-15T10:00:00-04:00",
+      "first_published": "2026-09-10T09:30:00-04:00",
+      "requisition_id": "R-1",
+      "title": "Software Engineer, New Grad",
+      "content": "&lt;p&gt;Join Acme&amp;#39;s platform team.&lt;/p&gt;&lt;h2&gt;Requirements&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;Python or Go&lt;/li&gt;&lt;li&gt;PostgreSQL&lt;/li&gt;&lt;/ul&gt;&lt;h2&gt;Benefits&lt;/h2&gt;&lt;p&gt;Health.&lt;/p&gt;",
+      "departments": [
+        {
+          "id": 1,
+          "name": "Engineering"
+        }
+      ],
+      "offices": [
+        {
+          "id": 1,
+          "name": "SF"
+        }
+      ]
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/4002",
+      "location": {
+        "name": "Remote - US"
+      },
+      "id": 4002,
+      "updated_at": "2026-09-18T12:00:00Z",
+      "title": "Senior Backend Engineer",
+      "content": "&lt;p&gt;5+ years with Java and Kubernetes.&lt;/p&gt;"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/4003",
+      "location": null,
+      "id": 4003,
+      "title": "Engineering Intern",
+      "content": null
+    }
+  ],
+  "meta": {
+    "total": 3
+  }
+}

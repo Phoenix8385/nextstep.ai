@@ -1,0 +1,69 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+  # Allow manual redeploys from the Actions tab (e.g. after rotating env vars).
+  workflow_dispatch:
+
+# Never run two production deploys at once; let the latest push win.
+concurrency:
+  group: deploy-frontend-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  deploy:
+    name: Deploy apps/web to Vercel (production)
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Install dependencies
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Vercel CLI
+        run: pnpm add --global vercel@latest
+
+      # Pulls project settings + production env vars from Vercel into
+      # .vercel/ so the build runs with the same config as a Vercel-side build.
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+
+      # Build locally in CI (not on Vercel) so a broken build fails here,
+      # and the artifact deployed is exactly what was tested.
+      - name: Build project artifacts
+        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Deploy prebuilt artifacts
+        id: deploy
+        run: |
+          url="$(vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}")"
+          echo "Deployed to: $url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"

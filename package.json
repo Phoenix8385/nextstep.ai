@@ -1,0 +1,12 @@
+{
+  "name": "nextstep-ai",
+  "private": true,
+  "packageManager": "pnpm@12.5.1",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm --filter web lint",
+    "type-check": "pnpm --filter web type-check",
+    "test": "pnpm --filter web test"
+  }
+}
