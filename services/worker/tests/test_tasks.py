@@ -4,6 +4,7 @@ No broker or database is touched: the session factory, the ingestion runner
 and the Redis lock are patched.
 """
 
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import timedelta
@@ -17,7 +18,7 @@ from app.models.job import JobSource
 from app.services.ingestion.pipeline import IngestionStats
 from services.worker import tasks
 from services.worker.beat_schedule import INGEST_ALL_TASK, INGEST_EVERY, beat_schedule
-from services.worker.celery_app import celery_app
+from services.worker.celery_app import DEFAULT_POOL, celery_app
 
 # --------------------------------------------------------------------------- #
 # Configuration
@@ -31,6 +32,14 @@ def test_celery_uses_redis_for_broker_and_backend() -> None:
     assert celery_app.conf.accept_content == ["json"]
     assert celery_app.conf.timezone == "UTC"
     assert celery_app.conf.task_acks_late is True
+
+
+def test_worker_pool_avoids_prefork_on_windows() -> None:
+    """Windows has no fork(); the prefork pool dies with WinError 5/6 there."""
+    assert celery_app.conf.worker_pool == DEFAULT_POOL
+    assert DEFAULT_POOL == ("solo" if sys.platform == "win32" else "prefork")
+    if sys.platform == "win32":
+        assert celery_app.conf.worker_pool == "solo"
 
 
 def test_beat_runs_ingest_all_every_20_minutes() -> None:

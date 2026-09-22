@@ -128,12 +128,15 @@ python -m app.scripts.ingest ashby notion --company Notion --create-source
 python -m app.scripts.ingest --source-id 5                         # re-sync an existing row
 ```
 
-Run the worker and scheduler from the **repository root** (same virtualenv;
-beat sweeps every active `job_sources` row every `INGEST_INTERVAL_MINUTES`, default 20):
+Run the worker and scheduler from the **repository root**, in the same
+virtualenv; beat sweeps every active `job_sources` row every
+`INGEST_INTERVAL_MINUTES` (default 20). `-A services.worker.celery_app` is a
+Python import path resolved against the current directory, so running these
+from `services/api` fails with `ModuleNotFoundError: No module named 'services'`:
 
 ```bash
-cd ../..
-celery -A services.worker.celery_app worker --loglevel=info --pool=solo   # --pool=solo on Windows
+cd /path/to/nextstep.ai            # the repository root, not services/api
+celery -A services.worker.celery_app worker --loglevel=info
 celery -A services.worker.celery_app beat   --loglevel=info
 celery -A services.worker.celery_app call worker.ingest_all_active_sources   # sweep now
 ```

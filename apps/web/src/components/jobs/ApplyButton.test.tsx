@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -27,6 +27,18 @@ const JOB = {
 
 const TOAST_COPY = /don't forget to mark this as applied once you've submitted it/i;
 
+/**
+ * Radix mirrors every toast into a visually-hidden live region for screen
+ * readers, so its text is in the DOM twice. Resolve the visible toast (the
+ * one inside the viewport's <li>) rather than racing the mirror.
+ */
+async function findToast(copy: RegExp): Promise<HTMLElement> {
+  const matches = await screen.findAllByText(copy);
+  const root = matches.map((el) => el.closest("li")).find((li): li is HTMLLIElement => li !== null);
+  if (!root) throw new Error(`no visible toast matched ${copy}`);
+  return root;
+}
+
 function renderButton(props: Partial<Parameters<typeof ApplyButton>[0]> = {}) {
   return render(
     <>
@@ -53,12 +65,11 @@ describe("Apply Now", () => {
 
     expect(window.open).toHaveBeenCalledWith(JOB.source_url, "_blank", "noopener,noreferrer");
 
-    const toast = await screen.findByText(TOAST_COPY);
-    expect(toast).toBeInTheDocument();
-    expect(screen.getByText(/acme/i)).toBeInTheDocument();
+    const toast = await findToast(TOAST_COPY);
+    expect(within(toast).getByText(`${JOB.company_name} — ${JOB.title}`)).toBeInTheDocument();
     // The toast carries its own inline action, and the button itself also flips over.
-    const actions = screen.getAllByRole("button", { name: /mark as applied/i });
-    expect(actions.length).toBeGreaterThanOrEqual(2);
+    expect(within(toast).getByRole("button", { name: /mark as applied/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /mark as applied/i }).length).toBeGreaterThanOrEqual(2);
   });
 
   it("does not record the application until the user confirms", async () => {
@@ -66,7 +77,7 @@ describe("Apply Now", () => {
     renderButton();
 
     await user.click(screen.getByRole("button", { name: /apply now/i }));
-    await screen.findByText(TOAST_COPY);
+    await findToast(TOAST_COPY);
 
     expect(api.post).not.toHaveBeenCalled(); // opening the tab is not applying
   });
@@ -87,7 +98,7 @@ describe("Apply Now", () => {
       }),
     );
     expect(await screen.findByRole("button", { name: /^applied$/i })).toBeDisabled();
-    expect(await screen.findByText(/marked as applied/i)).toBeInTheDocument();
+    expect(await findToast(/marked as applied/i)).toBeInTheDocument();
   });
 
   it("the in-place Mark as Applied button records it too and calls onApplied", async () => {
@@ -112,8 +123,8 @@ describe("Apply Now", () => {
     const [inlineAction] = await screen.findAllByRole("button", { name: /mark as applied/i });
     await user.click(inlineAction);
 
-    expect(await screen.findByText(/could not record the application/i)).toBeInTheDocument();
-    expect(await screen.findByText(/database unavailable/i)).toBeInTheDocument();
+    const failure = await findToast(/could not record the application/i);
+    expect(within(failure).getByText(/database unavailable/i)).toBeInTheDocument();
     // Still recoverable: the button has not claimed success.
     expect(screen.queryByRole("button", { name: /^applied$/i })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /mark as applied/i }).length).toBeGreaterThan(0);

@@ -131,3 +131,33 @@ export interface TokenResponse {
   expires_in: number;
   user: AuthUser;
 }
+
+/** Profile experience levels the matcher recognises (see services/matching.py). */
+export type ProfileExperienceLevel = "student" | "fresher" | "entry_level" | "experienced";
+
+export interface UserProfile {
+  user_id: string;
+  college: string | null;
+  branch: string | null;
+  /** NUMERIC(3,2) — Pydantic serialises Decimal as a string. */
+  cgpa: string | number | null;
+  graduation_year: number | null;
+  experience_level: string | null;
+  preferred_roles: string[];
+  preferred_locations: string[];
+  preferred_work_mode: string[];
+  skills: string[];
+}
+
+/** Body for `PUT /profile`; every field is optional and only sent fields are written. */
+export interface ProfileUpdate {
+  college?: string | null;
+  branch?: string | null;
+  cgpa?: string | null;
+  graduation_year?: number | null;
+  experience_level?: string | null;
+  preferred_roles?: string[];
+  preferred_locations?: string[];
+  preferred_work_mode?: string[];
+  skills?: string[];
+}
