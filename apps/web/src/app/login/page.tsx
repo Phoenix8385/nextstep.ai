@@ -43,7 +43,13 @@ function LoginForm() {
         return;
       }
       clearTokenCache();
-      router.push(callbackUrl);
+      // New accounts go to onboarding first: eligibility checks are only
+      // meaningful once graduation year / CGPA / skills are on file.
+      router.push(
+        mode === "signup"
+          ? `/onboarding?next=${encodeURIComponent(callbackUrl)}`
+          : callbackUrl,
+      );
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong");

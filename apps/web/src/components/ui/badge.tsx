@@ -21,6 +21,9 @@ const badgeVariants = cva(
   },
 );
 
+/** The visual tones a Badge can take. */
+export type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
+
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement>, VariantProps<typeof badgeVariants> {}
 
 export function Badge({ className, variant, ...props }: BadgeProps) {

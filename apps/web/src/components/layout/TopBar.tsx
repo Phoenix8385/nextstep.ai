@@ -74,6 +74,14 @@ export function TopBar() {
                 >
                   Saved jobs
                 </Link>
+                <Link
+                  role="menuitem"
+                  href="/onboarding"
+                  className="block px-3 py-2 text-sm hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  Profile
+                </Link>
                 <button
                   role="menuitem"
                   type="button"
