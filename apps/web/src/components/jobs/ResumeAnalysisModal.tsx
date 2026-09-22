@@ -293,11 +293,31 @@ function ResultStep({
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-        <ScoreRing score={result.match_score} />
+        {result.scoreable ? (
+          <ScoreRing score={result.match_score} />
+        ) : (
+          <div
+            className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-4 border-dashed border-slate-300 text-center text-xs font-medium text-slate-500"
+            role="img"
+            aria-label="No match score: this posting lists no skills"
+          >
+            No score
+          </div>
+        )}
         <div className="flex-1 text-center sm:text-left">
           <p className="text-sm text-slate-600">
-            {result.matching_skills.length} of {result.matching_skills.length + result.missing_skills.length} skills
-            the posting mentions appear on your resume.
+            {result.scoreable ? (
+              <>
+                {result.matching_skills.length} of{" "}
+                {result.matching_skills.length + result.missing_skills.length} skills the posting
+                mentions appear on your resume.
+              </>
+            ) : (
+              <>
+                This posting does not list skills we can identify, so there is nothing to score
+                against. Judge the fit from the description.
+              </>
+            )}
           </p>
           <div className="mt-3">
             <Badge variant={eligibility.variant}>{eligibility.label}</Badge>
@@ -313,8 +333,12 @@ function ResultStep({
         </div>
       </div>
 
-      <SkillGroup title="Matching skills" skills={result.matching_skills} variant="green" empty="None of the listed skills were found on your resume." />
-      <SkillGroup title="Not found on your resume" skills={result.missing_skills} variant="neutral" empty="Nothing missing — every listed skill is on your resume." />
+      {result.scoreable ? (
+        <>
+          <SkillGroup title="Matching skills" skills={result.matching_skills} variant="green" empty="None of the listed skills were found on your resume." />
+          <SkillGroup title="Not found on your resume" skills={result.missing_skills} variant="neutral" empty="Nothing missing — every listed skill is on your resume." />
+        </>
+      ) : null}
 
       {result.suggestions.length ? (
         <section aria-labelledby="sugg-heading">

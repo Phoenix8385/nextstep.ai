@@ -58,6 +58,7 @@ function analysis(overrides: Partial<AnalyzeResponse> = {}): AnalyzeResponse {
     resume_version_id: "version-1",
     profile_on_file: true,
     match_score: 67,
+    scoreable: true,
     matching_skills: ["Python", "Docker"],
     missing_skills: ["PostgreSQL"],
     eligibility_status: "likely_eligible",
@@ -180,7 +181,8 @@ describe("step 2 — results", () => {
     vi.mocked(api.post).mockResolvedValueOnce(result);
     renderModal();
     await user.click(await screen.findByRole("button", { name: /use my resume on file/i }));
-    await screen.findByText(`${result.match_score}%`);
+    // An unscoreable posting renders "No score" in place of the percentage.
+    await screen.findByText(result.scoreable ? `${result.match_score}%` : "No score");
     return user;
   }
 
@@ -221,6 +223,36 @@ describe("step 2 — results", () => {
     expect(screen.getByText(/your graduation year is 2029/i)).toBeInTheDocument();
     expect(screen.getByText(/none of the listed skills were found/i)).toBeInTheDocument();
     expect(document.querySelector(".stroke-red-500")).not.toBeNull();
+  });
+
+  it("says the posting cannot be scored instead of showing a 0% ring", async () => {
+    // A posting that names no identifiable skills scores 0 for everyone, so a
+    // "0%" ring would read as a bad fit rather than a missing input.
+    await analyzeWith(
+      analysis({
+        scoreable: false,
+        match_score: 0,
+        matching_skills: [],
+        missing_skills: [],
+        suggestions: ["This posting lists no identifiable skills, so the score is not meaningful."],
+      }),
+    );
+
+    expect(screen.getByRole("img", { name: /no match score/i })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /match score \d+ percent/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/does not list skills we can identify/i)).toBeInTheDocument();
+    // The misleading empty-state copy must not appear either.
+    expect(screen.queryByText(/none of the listed skills were found/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/every listed skill is on your resume/i)).not.toBeInTheDocument();
+  });
+
+  it("still shows a real 0% when the posting lists skills the resume lacks", async () => {
+    await analyzeWith(
+      analysis({ scoreable: true, match_score: 0, matching_skills: [], missing_skills: ["Rust"] }),
+    );
+
+    expect(screen.getByRole("img", { name: /match score 0 percent/i })).toBeInTheDocument();
+    expect(screen.getByText(/none of the listed skills were found/i)).toBeInTheDocument();
   });
 
   it("prompts to complete the profile when there is none", async () => {

@@ -74,6 +74,8 @@ export type EligibilityStatus = "likely_eligible" | "uncertain" | "not_eligible"
 
 export interface MatchResult {
   match_score: number;
+  /** False when the posting names no identifiable skills — the score is then meaningless, not zero. */
+  scoreable: boolean;
   matching_skills: string[];
   missing_skills: string[];
   eligibility_status: EligibilityStatus;
