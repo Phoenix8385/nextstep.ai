@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionFactory, dispose_engine
 from app.models.job import Job, JobChangeLog, JobSource
 from app.services.ingestion import ashby, greenhouse, lever
-from app.services.ingestion.http import FetchError
+from app.services.ingestion.http import BoardNotFoundError, FetchError
 from app.services.ingestion.schema import NormalizedJob
 
 logger = logging.getLogger(__name__)
@@ -317,7 +317,22 @@ async def _deactivate_missing(
             len(missing),
         )
         return 0
-    for job in missing:
+    return _mark_inactive(db, missing, now)
+
+
+async def _deactivate_all(db: AsyncSession, source: JobSource, now: datetime) -> int:
+    """Deactivate every active posting belonging to ``source``."""
+    active = (
+        (await db.execute(select(Job).where(Job.source_id == source.id, Job.is_active.is_(True))))
+        .scalars()
+        .all()
+    )
+    return _mark_inactive(db, active, now)
+
+
+def _mark_inactive(db: AsyncSession, jobs: Sequence[Job], now: datetime) -> int:
+    """Flip ``jobs`` to inactive, logging each change. Returns how many were flipped."""
+    for job in jobs:
         job.is_active = False
         job.updated_at = now
         db.add(
@@ -329,7 +344,7 @@ async def _deactivate_missing(
                 changed_at=now,
             )
         )
-    return len(missing)
+    return len(jobs)
 
 
 # --------------------------------------------------------------------------- #
@@ -349,6 +364,12 @@ async def run_ingestion_for_source(
     malformed payload is reported in ``stats.error`` and the database is left
     untouched; individual postings that fail to normalise are counted in
     ``stats.failed`` and skipped.
+
+    A 404 is the one fetch failure that *does* write: the board is gone or the
+    token is wrong, so its postings are unreachable and every one of them is
+    deactivated. Leaving them active would serve dead apply links forever,
+    because the deactivation pass in :func:`sync_jobs` is never reached for a
+    source that cannot be fetched.
     """
     stats = IngestionStats(source_id=source.id)
     adapter = SOURCES.get(source.name.lower())
@@ -359,6 +380,20 @@ async def run_ingestion_for_source(
 
     try:
         raws = await adapter.fetch(source.board_token, company_name=source.company_name, http=http)
+    except BoardNotFoundError as exc:
+        # Subclass of FetchError, so this must be caught first.
+        now = datetime.now(UTC)
+        stats.error = str(exc)
+        stats.deactivated = await _deactivate_all(db, source, now)
+        source.last_fetched_at = now
+        await db.commit()
+        logger.warning(
+            "%s/%s: board not found — deactivated %d posting(s)",
+            source.name,
+            source.board_token,
+            stats.deactivated,
+        )
+        return stats
     except FetchError as exc:
         stats.error = str(exc)
         logger.warning("%s/%s: fetch failed: %s", source.name, source.board_token, exc.reason)

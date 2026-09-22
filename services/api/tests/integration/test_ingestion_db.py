@@ -146,3 +146,43 @@ async def test_run_ingestion_end_to_end_with_greenhouse_fixture(
     # Second run: nothing changed.
     again = await run_ingestion_for_source(db_session, source, http=http)
     assert (again.inserted, again.unchanged, again.deactivated) == (0, 3, 0)
+
+
+async def test_board_404_deactivates_that_sources_postings(
+    db_session: AsyncSession, mock_http: MockHttp
+) -> None:
+    """A board that has gone away must not keep serving dead apply links.
+
+    The deactivation pass in ``sync_jobs`` is never reached when the fetch
+    itself fails, so a 404 has to retire the postings on its own.
+    """
+    source = await make_source(db_session)
+    await sync_jobs(db_session, source, [posting("1"), posting("2")], now=T0)
+    assert await count(db_session, Job) == 2
+
+    # Empty route map -> mock_http answers every URL with 404.
+    stats = await run_ingestion_for_source(db_session, source, http=mock_http({}))
+
+    assert stats.error is not None
+    assert "board not found" in stats.error
+    assert stats.deactivated == 2
+    rows = (await db_session.execute(select(Job))).scalars().all()
+    assert [r.is_active for r in rows] == [False, False]
+    # Every flip is logged, exactly as a normal deactivation would be.
+    assert await count(db_session, JobChangeLog) == 2
+
+
+async def test_transient_fetch_failure_leaves_postings_active(
+    db_session: AsyncSession, mock_http: MockHttp
+) -> None:
+    """A 5xx is an outage, not a retired board — the postings must survive it."""
+    source = await make_source(db_session)
+    await sync_jobs(db_session, source, [posting("1")], now=T0)
+
+    http = mock_http({JOBS_URL.format(board_token="acme"): (500, {"error": "boom"})})
+    with patch.object(pipeline, "SOURCES", pipeline.SOURCES):
+        stats = await run_ingestion_for_source(db_session, source, http=http)
+
+    assert stats.error is not None
+    assert stats.deactivated == 0
+    assert (await db_session.execute(select(Job))).scalar_one().is_active is True

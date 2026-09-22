@@ -64,7 +64,8 @@ SEED_SOURCES: tuple[SeedSource, ...] = (
     SeedSource(name="greenhouse", board_token="stripe", company_name="Stripe"),
     SeedSource(name="greenhouse", board_token="figma", company_name="Figma"),
     SeedSource(name="greenhouse", board_token="cloudflare", company_name="Cloudflare"),
-    SeedSource(name="lever", board_token="plaid", company_name="Plaid"),
+    SeedSource(name="lever", board_token="spotify", company_name="Spotify"),
+    SeedSource(name="ashby", board_token="plaid", company_name="Plaid"),
     SeedSource(name="ashby", board_token="notion", company_name="Notion"),
     SeedSource(name="ashby", board_token="ramp", company_name="Ramp"),
 )
@@ -206,9 +207,9 @@ SEED_JOBS: tuple[SeedJob, ...] = (
         detected_hours_ago=36,
     ),
     SeedJob(
-        source=("lever", "plaid"),
+        source=("ashby", "plaid"),
         external_job_id="a3f0c2d4-7b1e-4f68-9a2c-1d5e8f0b3c71",
-        source_url="https://jobs.lever.co/plaid/a3f0c2d4-7b1e-4f68-9a2c-1d5e8f0b3c71",
+        source_url="https://jobs.ashbyhq.com/plaid/a3f0c2d4-7b1e-4f68-9a2c-1d5e8f0b3c71",
         company_name="Plaid",
         title="Software Engineer, Early Career",
         location="Remote, US",
@@ -230,9 +231,9 @@ SEED_JOBS: tuple[SeedJob, ...] = (
         deadline_days_ahead=21,
     ),
     SeedJob(
-        source=("lever", "plaid"),
+        source=("ashby", "plaid"),
         external_job_id="c9e4b1a2-3d5f-4e07-8b6a-2f1c0d9e7a55",
-        source_url="https://jobs.lever.co/plaid/c9e4b1a2-3d5f-4e07-8b6a-2f1c0d9e7a55",
+        source_url="https://jobs.ashbyhq.com/plaid/c9e4b1a2-3d5f-4e07-8b6a-2f1c0d9e7a55",
         company_name="Plaid",
         title="Machine Learning Engineer, Fraud",
         location="New York, NY",
