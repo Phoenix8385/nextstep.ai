@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { useRefreshOnFocus } from "@/hooks/use-refresh-on-focus";
 import { toast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api-client";
 import { listApplications, updateApplicationStatus } from "@/lib/applications";
@@ -88,6 +89,10 @@ export default function ApplicationsPage() {
   useEffect(() => {
     if (authStatus === "authenticated") void load();
   }, [authStatus, load]);
+
+  // Statuses change on other routes (marking a job applied) and in other tabs,
+  // so a mount-only fetch goes stale. Re-pull whenever the page regains focus.
+  useRefreshOnFocus(load, { enabled: authStatus === "authenticated" });
 
   const onChangeStatus = useCallback(
     (application: Application, next: ApplicationStatus) => {

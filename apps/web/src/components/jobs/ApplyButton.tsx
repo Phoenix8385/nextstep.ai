@@ -45,13 +45,6 @@ export function ApplyButton({ job, resumeVersionId, size = "md", className, onAp
     setPhase("saving");
     try {
       await markAsApplied(job.id, resumeVersionId);
-      setPhase("applied");
-      toast({
-        title: "Marked as applied",
-        description: `${job.title} at ${job.company_name} is now in your tracker.`,
-        variant: "success",
-      });
-      onApplied?.();
     } catch (error) {
       setPhase("opened");
       toast({
@@ -59,7 +52,21 @@ export function ApplyButton({ job, resumeVersionId, size = "md", className, onAp
         description: error instanceof ApiError ? error.message : "Please try again.",
         variant: "error",
       });
+      return;
     }
+
+    // Past this point the application is saved; nothing below may roll the UI
+    // back to "not applied", so the cache refresh stays outside the try above.
+    setPhase("applied");
+    toast({
+      title: "Marked as applied",
+      description: `${job.title} at ${job.company_name} is now in your tracker.`,
+      variant: "success",
+    });
+    onApplied?.();
+    // Drop Next's cached RSC payloads so /applications does not render the
+    // pre-mutation list when the user navigates (or goes back) to it.
+    router.refresh();
   }
 
   function applyNow(): void {

@@ -3,12 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
+const refresh = vi.fn();
 
 vi.mock("@/lib/api-client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api-client")>("@/lib/api-client");
   return { ...actual, api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn(), delete: vi.fn() } };
 });
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/jobs/job-1" }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push, refresh }),
+  usePathname: () => "/jobs/job-1",
+}));
 
 const sessionStatus = { value: "authenticated" as "authenticated" | "unauthenticated" };
 vi.mock("next-auth/react", () => ({ useSession: () => ({ status: sessionStatus.value, data: null }) }));
@@ -51,6 +55,7 @@ function renderButton(props: Partial<Parameters<typeof ApplyButton>[0]> = {}) {
 beforeEach(() => {
   vi.mocked(api.post).mockReset().mockResolvedValue({});
   push.mockReset();
+  refresh.mockReset();
   sessionStatus.value = "authenticated";
   useToastStore.setState({ toasts: [] });
   vi.stubGlobal("open", vi.fn());
@@ -112,6 +117,8 @@ describe("Apply Now", () => {
 
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     expect(onApplied).toHaveBeenCalledOnce();
+    // The tracker must not serve a cached, pre-mutation list afterwards.
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("stays on Mark as Applied and explains when the API fails", async () => {
@@ -128,6 +135,7 @@ describe("Apply Now", () => {
     // Still recoverable: the button has not claimed success.
     expect(screen.queryByRole("button", { name: /^applied$/i })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /mark as applied/i }).length).toBeGreaterThan(0);
+    expect(refresh).not.toHaveBeenCalled();  // nothing was saved, nothing to invalidate
   });
 
   it("sends a signed-out user to the login page instead of recording anything", async () => {

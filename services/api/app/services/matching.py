@@ -45,6 +45,40 @@ _EXPERIENCED_PROFILE_LEVELS: Final[frozenset[str]] = frozenset(
     {"experienced", "mid", "mid_level", "mid-level", "senior", "lead", "staff", "principal"}
 )
 
+SOFT_SKILLS: Final[frozenset[str]] = frozenset(
+    {
+        "agile",
+        "analytical thinking",
+        "communication",
+        "customer support",
+        "documentation",
+        "kanban",
+        "mentoring",
+        "problem solving",
+        "product management",
+        "program management",
+        "project management",
+        "requirements gathering",
+        "roadmapping",
+        "scrum",
+        "stakeholder management",
+        "teamwork",
+        "technical leadership",
+        "technical writing",
+    }
+)
+"""Skills too generic to discriminate between candidates.
+
+A posting whose only stated requirements are these (common for sales, finance
+and support roles) tells us nothing about technical fit, so scoring it would
+report a confident 0% where we simply have no signal.
+"""
+
+
+def discriminating_skills(job_skills: list[str]) -> list[str]:
+    """``job_skills`` minus the generic soft skills; empty means "no real signal"."""
+    return [skill for skill in job_skills if skill.strip().lower() not in SOFT_SKILLS]
+
 
 class MatchResult(BaseModel):
     """Explainable fit between one resume and one job."""
@@ -53,8 +87,9 @@ class MatchResult(BaseModel):
     scoreable: bool = Field(
         default=True,
         description=(
-            "False when the posting names no identifiable skills. ``match_score`` is then 0 "
-            "because there was nothing to match against, not because the resume is a poor fit."
+            "False when the posting names no skill specific enough to match on — either none "
+            "at all, or only generic ones like Communication. ``match_score`` is then 0 because "
+            "there was nothing to match against, not because the resume is a poor fit."
         ),
     )
     matching_skills: list[str]
@@ -310,16 +345,18 @@ def compute_match(
     posting text when that list is empty).
 
     When ``job_skills`` is empty the division has nothing to divide, so the
-    score is 0 for every resume. ``scoreable`` is False in that case so callers
-    can say "this posting does not list skills" instead of "0% match".
+    score is 0 for every resume. The same is true when the posting names only
+    generic skills (Communication, Teamwork …): the 0 carries no information.
+    ``scoreable`` is False in both cases so callers can say "this posting does
+    not list specific skills" instead of "0% match".
     """
     job_skills = job_skill_set(job)
     coverage, matching, missing = skill_coverage(resume_skills, job_skills)
     status, reasons = assess_eligibility(job, profile, now=now)
     return MatchResult(
         match_score=round(100 * coverage),
-        # Nothing to match against is not the same as matching nothing.
-        scoreable=bool(job_skills),
+        # Nothing specific to match against is not the same as matching nothing.
+        scoreable=bool(discriminating_skills(job_skills)),
         matching_skills=matching,
         missing_skills=missing,
         eligibility_status=status,

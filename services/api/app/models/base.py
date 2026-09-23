@@ -30,20 +30,21 @@ def updated_at_column() -> Mapped[datetime]:
 
 
 class ApplicationStatus(StrEnum):
-    """Allowed values for ``applications.status``.
+    """Allowed values for ``applications.status``, in funnel order.
 
     Stored as plain ``text`` so new stages can be added without a migration;
-    validated at the service layer, not by the database.
+    validated at the service layer, not by the database. Transitions are
+    deliberately unconstrained — a user correcting a mistake (offer back to
+    interview, rejected back to applied) is normal — but every change is
+    logged to ``application_events``.
     """
 
     SAVED = "saved"
-    APPLIED_PENDING_CONFIRMATION = "applied_pending_confirmation"
     APPLIED = "applied"
-    SCREENING = "screening"
+    ASSESSMENT = "assessment"
     INTERVIEW = "interview"
     OFFER = "offer"
     REJECTED = "rejected"
-    WITHDRAWN = "withdrawn"
 
 
 class ApplicationEventType(StrEnum):

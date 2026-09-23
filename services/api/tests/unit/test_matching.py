@@ -11,6 +11,7 @@ from app.services.matching import (
     MatchResult,
     assess_eligibility,
     compute_match,
+    discriminating_skills,
     match_key,
     skill_coverage,
 )
@@ -94,6 +95,30 @@ def test_compute_match_score_is_rounded_coverage(make_job: Callable[..., Job]) -
     assert result.match_score == 67  # round(100 * 2/3)
     assert result.matching_skills == ["Python", "SQL"]
     assert result.missing_skills == ["Docker"]
+
+
+def test_unscoreable_when_posting_lists_only_generic_skills(
+    make_job: Callable[..., Job],
+) -> None:
+    """A 0% against a posting that only wants "Communication" is noise, not a verdict."""
+    soft_only = make_job(required_skills=["Communication", "Teamwork", "Project Management"])
+    result = compute_match(["Python", "SQL"], soft_only, None, now=NOW)
+    assert result.match_score == 0
+    assert result.scoreable is False  # nothing specific to match against
+
+    # One concrete skill alongside the soft ones makes it meaningful again.
+    mixed = make_job(required_skills=["Communication", "Python"])
+    scored = compute_match(["Python"], mixed, None, now=NOW)
+    assert scored.scoreable is True
+    assert scored.match_score == 50  # soft skills still count in the denominator
+    assert scored.matching_skills == ["Python"]
+    assert scored.missing_skills == ["Communication"]
+
+
+def test_discriminating_skills_filters_generic_terms() -> None:
+    assert discriminating_skills(["Communication", "Python", "Teamwork"]) == ["Python"]
+    assert discriminating_skills(["communication", "AGILE"]) == []  # case-insensitive
+    assert discriminating_skills([]) == []
 
 
 def test_compute_match_falls_back_to_text_when_no_required_skills(
