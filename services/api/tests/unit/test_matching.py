@@ -11,6 +11,7 @@ from app.services.matching import (
     MatchResult,
     assess_eligibility,
     compute_match,
+    match_key,
     skill_coverage,
 )
 
@@ -35,6 +36,45 @@ def _profile(**overrides: object) -> UserProfile:
 # --------------------------------------------------------------------------- #
 # Formula
 # --------------------------------------------------------------------------- #
+
+
+def test_match_key_folds_case_and_resolves_aliases() -> None:
+    """Both sides are normally canonical, but the key must not depend on that."""
+    assert match_key("python") == match_key("Python") == match_key("PYTHON")
+    # Case folding alone leaves these distinct; the alias table collapses them.
+    assert match_key("nodejs") == match_key("Node.js") == match_key("node")
+    assert match_key("golang") == match_key("Go")
+    assert match_key("  postgres ") == match_key("PostgreSQL")
+    # Names that merely look similar must stay apart.
+    assert match_key("C") != match_key("C++")
+    assert match_key("C#") != match_key("C++")
+
+
+def test_skill_coverage_matches_alias_variants_across_sides() -> None:
+    """A resume saying "nodejs" and a posting saying "Node.js" are the same skill."""
+    coverage, matching, missing = skill_coverage(["nodejs", "golang"], ["Node.js", "Go"])
+    assert (round(100 * coverage), missing) == (100, [])
+    assert sorted(matching) == ["Go", "Node.js"]
+
+
+def test_unscoreable_when_posting_names_no_skills(make_job: Callable[..., Job]) -> None:
+    """A posting with nothing to match against scores 0 — but that is not a 0% fit."""
+    job = make_job(required_skills=[], description="A wonderful opportunity to join our team.")
+    result = compute_match(["Python", "SQL"], job, None)
+
+    assert result.scoreable is False
+    assert result.match_score == 0
+    assert (result.matching_skills, result.missing_skills) == ([], [])
+    assert any("not meaningful" in s for s in result.suggestions)
+
+
+def test_scoreable_whenever_the_posting_names_skills(make_job: Callable[..., Job]) -> None:
+    job = make_job(required_skills=["Python", "Rust"])
+
+    assert compute_match(["Python"], job, None).scoreable is True
+    # A real 0% — the posting listed skills, the resume had none of them.
+    zero = compute_match(["Excel"], job, None)
+    assert (zero.scoreable, zero.match_score) == (True, 0)
 
 
 def test_skill_coverage_formula() -> None:

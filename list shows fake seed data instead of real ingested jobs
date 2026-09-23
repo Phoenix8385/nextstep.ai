@@ -1,0 +1,53 @@
+[33mcommit 8321cdb27cffbdfb318558640b5387187cf7585d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Praveen Jawali <praveenjawali1@gmail.com>
+Date:   Wed Sep 23 01:49:44 2026 +0530
+
+    update to logics
+
+[33mcommit c2a8647f46b01ee9806d67c0f761d4c6d9b3c59f[m
+Author: Praveen Jawali <praveenjawali1@gmail.com>
+Date:   Wed Sep 23 00:55:13 2026 +0530
+
+    update login topbar and badge
+
+[33mcommit 94c5dcfbfa0edc816f6bf3add90a3624e298e81e[m
+Author: Praveen Jawali <praveenjawali1@gmail.com>
+Date:   Wed Sep 23 00:53:53 2026 +0530
+
+    add application onboarding and saved pages
+
+[33mcommit 4e2ccf6d4d6f44cc8e158d23126875b44270c227[m
+Author: Praveen Jawali <praveenjawali1@gmail.com>
+Date:   Wed Sep 23 00:52:08 2026 +0530
+
+    frontend update
+
+[33mcommit f26f0f075348cfa0e8cef76b7670f9508a3be7b8[m
+Author: Praveen Jawali <praveenjawali1@gmail.com>
+Date:   Wed Sep 23 00:17:57 2026 +0530
+
+     JOB DETAILS + RESUME ANALYSIS UI
+
+[33mcommit 40b011cacdebc45cf0ee1920f2c1f3e3efbe9277[m
+Author: Praveen Jawali <praveenjawali1@gmail.com>
+Date:   Tue Sep 22 23:25:07 2026 +0530
+
+     upadtes
+
+[33mcommit 4ddcc0fa4945f2d8ccb477b5dba4efe12d6a743a[m
+Author: Praveen Jawali <praveenjawali1@gmail.com>
+Date:   Sun Sep 20 22:57:02 2026 +0530
+
+    docs: add 4 architecture decision records
+
+[33mcommit c9b597a9db0615b63a3fa3106dd9e9efc2910164[m
+Author: Praveen Jawali <praveenjawali1@gmail.com>
+Date:   Sun Sep 20 22:46:33 2026 +0530
+
+    chore: initialize monorepo structure
+
+[33mcommit dd0ae4807d921356e4ee21f4c97c4cb62bfc2c5a[m
+Author: Praveen <praveenjawali1@gmail.com>
+Date:   Sun Sep 20 22:18:03 2026 +0530
+
+    Initial commit

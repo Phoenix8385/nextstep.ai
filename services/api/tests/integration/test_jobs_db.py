@@ -2,12 +2,19 @@
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Job, JobSource, SavedJob, UserProfile
-from app.scripts.seed_jobs import SEED_JOBS, SEED_SOURCES, seed
+from app.scripts.seed_jobs import (
+    SEED_JOBS,
+    SEED_SOURCES,
+    RealJobsPresentError,
+    has_ingested_jobs,
+    seed,
+)
 
 # --------------------------------------------------------------------------- #
 # Seed script
@@ -23,6 +30,55 @@ async def test_seed_inserts_ten_jobs_and_is_idempotent(db_session: AsyncSession)
 
     assert await db_session.scalar(select(func.count()).select_from(Job)) == 10
     assert await db_session.scalar(select(func.count()).select_from(JobSource)) == len(SEED_SOURCES)
+
+
+async def test_seed_refuses_once_real_jobs_are_ingested(db_session: AsyncSession) -> None:
+    """Seeding an already-ingested database floats synthetic rows above real ones.
+
+    Seed ``detected_at`` values are back-dated into the "just posted" window,
+    and ``GET /jobs`` orders by ``detected_at`` — so a late seed takes over
+    page 1 and badges fakes as new. The guard is what stops that.
+    """
+    source = JobSource(name="greenhouse", board_token="acme", company_name="Acme", is_active=True)
+    db_session.add(source)
+    await db_session.flush()
+    db_session.add(
+        Job(
+            source_id=source.id,
+            external_job_id="real-1",
+            source_url="https://boards.greenhouse.io/acme/jobs/real-1",
+            company_name="Acme",
+            title="Real Ingested Engineer",
+            description="Body",
+            required_skills=["Python"],
+            content_hash="deadbeef",
+            detected_at=datetime.now(UTC) - timedelta(hours=6),
+            is_active=True,
+        )
+    )
+    await db_session.commit()
+
+    assert await has_ingested_jobs(db_session) is True
+    with pytest.raises(RealJobsPresentError, match="already holds ingested postings"):
+        await seed(db_session)
+
+    # Nothing was written: the real posting is still the only row.
+    assert await db_session.scalar(select(func.count()).select_from(Job)) == 1
+
+    # --force is the documented escape hatch and still works.
+    _, inserted = await seed(db_session, force=True)
+    assert inserted == len(SEED_JOBS)
+
+
+async def test_has_ingested_jobs_ignores_the_seed_rows_themselves(
+    db_session: AsyncSession,
+) -> None:
+    """Re-running the seed must stay idempotent, not trip its own guard."""
+    await seed(db_session)
+    assert await has_ingested_jobs(db_session) is False
+
+    _, again = await seed(db_session)
+    assert again == 0
 
 
 # --------------------------------------------------------------------------- #

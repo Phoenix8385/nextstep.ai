@@ -144,6 +144,13 @@ celery -A services.worker.celery_app call worker.ingest_all_active_sources   # s
 The rows created by `seed_jobs` are synthetic; register real boards with
 `--create-source` (each ATS's public API needs only the company slug).
 
+`seed_jobs` refuses to run once ingestion has populated `jobs`, and exits `2`.
+Its rows are back-dated into the two-hour "just posted" window so an empty
+database demonstrates recency ordering, which means seeding a live database
+would rank synthetic postings above real ones in `GET /jobs`. Pass `--force`
+to override. Seed rows that do slip in are retired by the next sweep of their
+source, since they are absent from the board's real payload.
+
 Checks:
 
 ```bash

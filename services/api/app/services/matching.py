@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 
 from app.models.job import Job
 from app.models.user import UserProfile
-from app.services.ingestion.skill_extractor import extract_skills
+from app.services.ingestion.skill_extractor import ALIASES, extract_skills
 
 EligibilityStatus = Literal["likely_eligible", "uncertain", "not_eligible"]
 
@@ -50,6 +50,13 @@ class MatchResult(BaseModel):
     """Explainable fit between one resume and one job."""
 
     match_score: int = Field(ge=0, le=100)
+    scoreable: bool = Field(
+        default=True,
+        description=(
+            "False when the posting names no identifiable skills. ``match_score`` is then 0 "
+            "because there was nothing to match against, not because the resume is a poor fit."
+        ),
+    )
     matching_skills: list[str]
     missing_skills: list[str]
     eligibility_status: EligibilityStatus
@@ -64,13 +71,30 @@ class MatchResult(BaseModel):
 # --------------------------------------------------------------------------- #
 
 
+def match_key(skill: str) -> str:
+    """Comparison key for a skill name: alias resolved first, then case-folded.
+
+    Both sides of a comparison normally come from :func:`extract_skills` and
+    are already canonical, so case folding alone would usually do. It is not
+    enough when one side is not canonical — a ``required_skills`` array written
+    by an older dictionary, or skills typed by a user — because case folding
+    leaves ``Node.js`` and ``nodejs`` as different skills. Resolving through
+    the alias table first collapses them onto the same key.
+    """
+    stripped = skill.strip()
+    return ALIASES.get(stripped.lower(), stripped).lower()
+
+
 def _normalise(skills: list[str]) -> dict[str, str]:
-    """``lowercase -> first seen display form``."""
+    """``match key -> first seen display form``."""
     out: dict[str, str] = {}
     for skill in skills:
-        key = skill.strip().lower()
-        if key and key not in out:
-            out[key] = skill.strip()
+        stripped = skill.strip()
+        if not stripped:
+            continue
+        key = match_key(stripped)
+        if key not in out:
+            out[key] = stripped
     return out
 
 
@@ -284,12 +308,18 @@ def compute_match(
     ``match_score = round(100 * |resume_skills ∩ job_skills| / max(1, |job_skills|))``
     where ``job_skills`` is ``job.required_skills`` (or skills extracted from the
     posting text when that list is empty).
+
+    When ``job_skills`` is empty the division has nothing to divide, so the
+    score is 0 for every resume. ``scoreable`` is False in that case so callers
+    can say "this posting does not list skills" instead of "0% match".
     """
     job_skills = job_skill_set(job)
     coverage, matching, missing = skill_coverage(resume_skills, job_skills)
     status, reasons = assess_eligibility(job, profile, now=now)
     return MatchResult(
         match_score=round(100 * coverage),
+        # Nothing to match against is not the same as matching nothing.
+        scoreable=bool(job_skills),
         matching_skills=matching,
         missing_skills=missing,
         eligibility_status=status,

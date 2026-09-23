@@ -8,12 +8,22 @@ Idempotent: sources are matched on ``(name, board_token)`` and jobs are
 inserted with ``ON CONFLICT (source_id, external_job_id) DO NOTHING``, so
 re-running never duplicates rows. All postings are synthetic; the URLs follow
 each ATS's real URL shape but do not point at real openings.
+
+**Only seeds an un-ingested database.** Seed rows carry a back-dated
+``detected_at`` (some inside the two-hour "just posted" window) so an empty
+dev database demonstrates recency ordering and the badge. Against a database
+that ingestion has already populated, those same timestamps float synthetic
+postings to the top of ``GET /jobs`` — which orders by ``detected_at`` — and
+hand them a "Just Posted" badge, burying real openings behind dead links.
+So seeding stops when real postings are present; pass ``--force`` to override.
 """
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import logging
+import sys
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -356,8 +366,34 @@ def build_job_values(seed: SeedJob, *, source_id: int, now: datetime) -> dict[st
     }
 
 
-async def seed(session: AsyncSession, *, now: datetime | None = None) -> tuple[int, int]:
-    """Seed sources and jobs; commit; return ``(sources_total, jobs_inserted)``."""
+SEED_JOB_IDS: frozenset[str] = frozenset(job.external_job_id for job in SEED_JOBS)
+"""``external_job_id`` of every synthetic posting, used to tell seed rows from real ones."""
+
+
+class RealJobsPresentError(RuntimeError):
+    """Ingestion has already populated ``jobs``; seeding would outrank real postings."""
+
+
+async def has_ingested_jobs(session: AsyncSession) -> bool:
+    """True when ``jobs`` holds any posting that did not come from this script."""
+    stmt = select(Job.id).where(Job.external_job_id.not_in(SEED_JOB_IDS)).limit(1)
+    return (await session.execute(stmt)).first() is not None
+
+
+async def seed(
+    session: AsyncSession, *, now: datetime | None = None, force: bool = False
+) -> tuple[int, int]:
+    """Seed sources and jobs; commit; return ``(sources_total, jobs_inserted)``.
+
+    :raises RealJobsPresentError: when real postings exist and ``force`` is false.
+    """
+    if not force and await has_ingested_jobs(session):
+        raise RealJobsPresentError(
+            "jobs table already holds ingested postings — seeding would put synthetic "
+            "rows above them in GET /jobs and badge them 'Just Posted'. "
+            "Pass --force if that is really what you want."
+        )
+
     now = now or datetime.now(UTC)
     source_ids = await _ensure_sources(session)
 
@@ -376,12 +412,28 @@ async def seed(session: AsyncSession, *, now: datetime | None = None) -> tuple[i
     return len(source_ids), inserted
 
 
-async def main() -> None:
-    """CLI entry point."""
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Insert synthetic postings for local development.")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="seed even when real ingested postings are already present",
+    )
+    return parser
+
+
+async def main(argv: list[str] | None = None) -> int:
+    """CLI entry point; returns a process exit code."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    async with AsyncSessionFactory() as session:
-        sources, inserted = await seed(session)
-    await dispose_engine()
+    args = build_parser().parse_args(argv)
+    try:
+        async with AsyncSessionFactory() as session:
+            sources, inserted = await seed(session, force=args.force)
+    except RealJobsPresentError as exc:
+        logger.error("Refusing to seed: %s", exc)
+        return 2
+    finally:
+        await dispose_engine()
     logger.info(
         "Seed complete: %d sources present, %d of %d jobs inserted (%d already existed)",
         sources,
@@ -389,7 +441,8 @@ async def main() -> None:
         len(SEED_JOBS),
         len(SEED_JOBS) - inserted,
     )
+    return 0
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    sys.exit(asyncio.run(main()))
